@@ -1,0 +1,794 @@
+<html>
+
+<head>
+    <title>Tetris Game in browser</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .game-field-wrapper {
+            position: absolute;
+            display: flex;
+            width: 152px;
+            height: 302px;
+            background-color: #000000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ded7f1;
+        }
+
+        .next-shape-wrapper {
+            margin-top: -75px;
+            left: calc(50% + 76px + 15px);
+            display: flex;
+            position: absolute;
+            background-color: #000000;
+            justify-content: center;
+            align-items: center;
+            width: 62px;
+            height: 62px;
+        }
+
+        .next-shape {
+            display: flex;
+        }
+
+        .score-wrapper,.level-wrapper {
+            left: calc(50% + 76px + 15px);
+            display: flex;
+            position: absolute;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+        }
+
+        .score-wrapper {
+            margin-top: -135px;
+        }
+
+        .level-wrapper {
+            margin-top: -20px;
+        }
+
+        .pause {
+            visibility: hidden;
+        }
+
+        .d-none {
+            display: none;
+        }
+
+        @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+            /* IE10+ CSS */
+            .game-field-wrapper {
+                position: inherit;
+            }
+
+            .next-shape-wrapper {
+                margin-top: -105px;
+            }
+
+            .score-wrapper {
+                margin-top: -155px;
+            }
+
+            .level-wrapper {
+                margin-top: -40px;
+            }
+        }
+
+        @supports (-ms-accelerator:true) {
+            /* IE Edge 12+ CSS */ 
+            .game-field-wrapper {
+                position: inherit;
+            }
+
+            .next-shape-wrapper {
+                margin-top: -155px;
+            }
+
+            .score-wrapper {
+                margin-top: -265px;
+            }
+
+            .level-wrapper {
+                margin-top: -40px;
+            }
+        }
+
+        @supports (-ms-ime-align:auto) {
+            /* IE Edge 16+ CSS */ 
+            .game-field-wrapper {
+                position: inherit;
+            }
+
+            .next-shape-wrapper {
+                margin-top: -155px;
+            }
+
+            .score-wrapper {
+                margin-top: -265px;
+            }
+
+            .level-wrapper {
+                margin-top: -40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-screen">
+        <div id="gameFieldWrapper" class="game-field-wrapper">
+            <canvas id="gameField" class="game-field"></canvas>
+        </div>
+        <div id="nextShapeWrapper" class="next-shape-wrapper">
+            <canvas id="nextShape" class="next-shape"></canvas>
+        </div>
+        <div class="score-wrapper">
+            <span>Score: <br><label id="scoreCount"></label></span>
+        </div>
+        <div class="level-wrapper">
+            <span>
+                Level: <label id="level"></label> <br/>
+                <span id="pauseState" class="pause">Paused</span> 
+            </span>
+        </div>
+        <input type="file" id="customTextures" class="d-none" onchange="loadCustomTextures(this)" />
+    </div>
+    <script>
+        var gameField, gameFieldContext;
+        var pieceSize = 15,
+            innerPieceSize = 13,
+            shapeSize = 4,
+            gameFieldWidth = 10,
+            gameFieldHeight = 20,
+            gameSpeed,
+            currShape = [],
+            currShapeType,
+            currShapeColor,
+            nextShapeType,
+            nextShapeField,
+            nextShape = [],
+            nextShapeFieldContext,
+            startShapeX = 4,
+            startShapeY = -2,
+            currShapeX = 0,
+            currShapeY = 0,
+            clearingLines = false,
+            gameTimer,
+            pauseTimer,
+            isGameOver = true,
+            isGamePaused = true,
+            currentScore,
+            level,
+            levelDisplay,
+            scoreToLevelUpStep = 5000,
+            scoreToLevelUp,
+            rotateKeyHold,
+            isUseTextures = false,
+            nextShapeColor,
+            originalTextures = "data:image/jpeg;base64,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";
+        const upArrow = 38, 
+              rightArrow = 39, 
+              leftArrow = 37, 
+              downArrow = 40, 
+              enterKey = 13, 
+              changeRenderModeKey = 84, //t
+              loadCustomTexturesKey = 80; //p
+        var textures = new Image(), textureSize = 53;
+
+        var gameFieldPieces = [];
+        var shapes = [
+            [
+                false, true, true, false,
+                true, true, false, false,
+                false, false, false, false,
+                false, false, false, false
+            ],
+            [
+                true, true, false, false,
+                false, true, true, false,
+                false, false, false, false,
+                false, false, false, false
+            ],
+            [
+                false, true, false, false,
+                false, true, false, false,
+                false, true, true, false,
+                false, false, false, false
+            ],
+            [
+                false, false, true, false,
+                false, false, true, false,
+                false, true, true, false,
+                false, false, false, false
+            ],
+            [
+                true, true, false, false,
+                true, true, false, false,
+                false, false, false, false,
+                false, false, false, false
+            ],
+            [
+                true, true, true, false,
+                false, true, false, false,
+                false, false, false, false,
+                false, false, false, false
+            ],
+            [
+                false, false, true, false,
+                false, false, true, false,
+                false, false, true, false,
+                false, false, true, false
+            ]
+        ];
+
+        var shapeColors;
+        var originalColors = ["#AAAAAA", "#8BC34A", "#FF5722", "#009688", "#CDDC39", "#3F51B5", "#9C27B0"];
+        var shapeTextures = [0, 1, 2, 3, 4, 5, 6];
+
+        function initializeGameField() {
+            textures.onload = function () {
+                this.width = this.naturalWidth;
+                this.height = this.naturalHeight;
+                if (this.src !== originalTextures && !isUseTextures || this.src === originalTextures && isUseTextures || this.src !== originalTextures && isUseTextures) {
+                    changeRenderMode(true);
+                }
+            }
+            textures.src = originalTextures;
+
+            if (isUseTextures) {
+                shapeColors = shapeTextures;
+            }
+
+            if (!isUseTextures) {
+                shapeColors = originalColors;
+            }
+
+            gameFieldPieces = new Array(gameFieldWidth * gameFieldHeight);
+
+            for (fieldY = 0; fieldY < gameFieldHeight; fieldY++) {
+                for (fieldX = 0; fieldX < gameFieldWidth; fieldX++) {
+                    gameFieldPieces[getArrayIndexFromXY(fieldX, fieldY, gameFieldWidth)] = false;
+                }
+            }
+
+            gameField = document.getElementById("gameField");
+            gameField.width = pieceSize * 10;
+            gameField.height = pieceSize * 20;
+            gameField.style.backgroundColor = "#000000";
+            gameFieldContext = gameField.getContext("2d");
+
+            nextShapeField = document.getElementById("nextShape");
+            nextShapeField.width = pieceSize * 4;
+            nextShapeField.height = pieceSize * 4;
+            nextShapeField.style.backgroundColor = "#000000";
+            nextShapeFieldContext = nextShapeField.getContext("2d");
+
+            scoreCount = document.getElementById("scoreCount");
+            currentScore = 0;
+            level = 0;
+            levelDisplay = document.getElementById("level");
+            levelDisplay.innerText = level;
+            scoreCount.innerText = currentScore;
+            gameSpeed = 1300;
+            scoreToLevelUp = scoreToLevelUpStep;
+            rotateKeyHold = false;
+
+            initializeNewShape();
+        }
+
+        function getNextShapeType() {
+            return Math.floor(Math.random() * shapes.length);
+        }
+
+        function clearGameField() {
+            gameFieldContext.clearRect(0, 0, gameField.width, gameField.height);
+        }
+
+        function drawPiece(x, y, context) {
+            if (!isUseTextures) {
+                context.fillStyle = currShapeColor;
+                context.fillRect(x * pieceSize + 1, y * pieceSize + 1, innerPieceSize, innerPieceSize);
+                return;
+            }
+
+            context.drawImage(textures, currShapeColor * textureSize, 0, textureSize, textureSize, x * pieceSize, y * pieceSize, pieceSize, pieceSize);
+        }
+
+        function drawShape(x, y, shape, context) {
+            for (shapeY = 0; shapeY < shapeSize; shapeY++) {
+                for (shapeX = 0; shapeX < shapeSize; shapeX++) {
+                    if (shape[getArrayIndexFromXY(shapeX, shapeY, shapeSize)]) {
+                        drawPiece(shapeX + x, shapeY + y, context);
+                    }
+                }
+            }
+        }
+
+        function drawGameField() {
+            clearGameField();
+
+            if (isUseTextures) {
+                clearNextShapeField();
+                drawShape(0, 0, nextShape, nextShapeFieldContext);
+            }
+
+            if (!isUseTextures) {
+                clearNextShapeField();
+                drawShape(0, 0, nextShape, nextShapeFieldContext);
+            }
+
+            for (fieldY = 0; fieldY < gameFieldHeight; fieldY++) {
+                for (fieldX = 0; fieldX < gameFieldWidth; fieldX++) {
+                    if (gameFieldPieces[getArrayIndexFromXY(fieldX, fieldY, gameFieldWidth)]) {
+                        drawPiece(fieldX, fieldY, gameFieldContext);
+                    }
+                }
+            }
+
+            if (currShape){
+                drawShape(currShapeX, currShapeY, currShape, gameFieldContext);
+            }
+        }
+
+        function getShapeHexColor(shapeType) {
+            return shapeColors[shapeType];
+        }
+
+        function getShape(shapeType) {
+            return shapes[shapeType];
+        }
+
+        function getArrayIndexFromXY(x, y, arrayWidth) {
+            return y * arrayWidth + x;
+        }
+
+        function moveShapeLeft() {
+            if (!checkCollision(currShapeX - 1, currShapeY, currShape)) {
+                currShapeX -= 1;
+            }
+        }
+
+        function moveShapeRight() {
+            if (!checkCollision(currShapeX + 1, currShapeY, currShape)) {
+                currShapeX += 1;
+            }
+        }
+
+        function moveShapeDown() {
+            if (!checkCollision(currShapeX, currShapeY + 1, currShape)) {
+                currShapeY += 1;
+                return true;
+            }
+
+            return false;
+        }
+
+        function checkLines() {
+            var lineIndexes = [];
+            var isLine = false;
+
+            for (fieldY = 0; fieldY < 4; fieldY++) {
+                if (currShapeY + fieldY < gameFieldHeight) {
+                    for (fieldX = 0; fieldX < gameFieldWidth; fieldX++) {
+                        if (!gameFieldPieces[getArrayIndexFromXY(fieldX, currShapeY + fieldY, gameFieldWidth)]) {
+                            isLine = false;
+                            break;
+                        }
+
+                        isLine = true;
+                    }
+
+                    if (isLine){
+                        lineIndexes.push(currShapeY + fieldY);
+                    }
+                }
+            }
+
+            return lineIndexes;
+        }
+
+        function removeLines(lineIndexes) {
+            var scoreLineMultiplier = 0;
+
+            if (lineIndexes.length > 0) {
+                for (line = 0; line < lineIndexes.length; line++) {
+                    for (fieldX = 0; fieldX < gameFieldWidth; fieldX++) {
+                        gameFieldPieces[getArrayIndexFromXY(fieldX, lineIndexes[line], gameFieldWidth)] = false;
+                    }
+
+                    for (fieldY = lineIndexes[line]; fieldY >= 0; fieldY--) {
+                        for (fieldX = 0; fieldX < gameFieldWidth; fieldX++) {
+                            gameFieldPieces[getArrayIndexFromXY(fieldX, fieldY, gameFieldWidth)] = fieldY == 0 ? false : gameFieldPieces[getArrayIndexFromXY(fieldX, fieldY - 1, gameFieldWidth)];
+                        }
+                    }
+
+                    drawGameField();
+                }
+
+                scoreLineMultiplier = lineIndexes.length;
+
+                if (lineIndexes.length == 3) {
+                    scoreLineMultiplier = 4;
+                }
+                
+                if (lineIndexes.length == 4) {
+                    scoreLineMultiplier = 10;
+                }
+
+                currentScore += 100 * scoreLineMultiplier;
+                scoreCount.innerText = currentScore;
+
+                if (currentScore >= scoreToLevelUp && gameSpeed > 100) {
+                    scoreToLevelUp += scoreToLevelUpStep;
+                    gameSpeed -= 100;
+
+                    level += 1;
+                    levelDisplay.innerText = level;
+
+                    clearInterval(gameTimer);
+                    gameTimer = setInterval(gameFunction, gameSpeed);
+                }
+            }
+
+            return true;
+        }
+
+        function rotateShape(shapeX, shapeY, currShape, currShapeType) {
+            if (currShapeType == 4) {
+                return currShape;
+            }
+
+            var tmpShape = [
+            false, false, false, false,
+            false, false, false, false,
+            false, false, false, false,
+            false, false, false, false
+            ];
+            
+            if (currShapeType == 5) {
+                for (tmpShapeY = 0; tmpShapeY < shapeSize - 1; tmpShapeY++) {
+                    for (tmpShapeX = 0; tmpShapeX < shapeSize - 1; tmpShapeX++) {
+                        tmpShape[getArrayIndexFromXY(tmpShapeX, tmpShapeY, shapeSize)] = currShape[getArrayIndexFromXY(tmpShapeY, shapeSize - 2 - tmpShapeX, shapeSize)]
+                    }
+                }
+            }
+
+            if (currShapeType == 1 || currShapeType == 0) {
+                if (currShapeType == 0 && currShape[1] || currShapeType == 1 && currShape[0]) {
+                    for (tmpShapeY = 0; tmpShapeY < shapeSize - 1; tmpShapeY++) {
+                        for (tmpShapeX = 0; tmpShapeX < shapeSize - 1; tmpShapeX++) {
+                            tmpShape[getArrayIndexFromXY(tmpShapeX, tmpShapeY, shapeSize)] = currShape[getArrayIndexFromXY(tmpShapeY, shapeSize - 3 - tmpShapeX, shapeSize)]
+                        }
+                    }
+                }
+
+                if (currShapeType == 0 && !currShape[1]) {
+                    tmpShape = getShape(currShapeType);
+                }
+
+                if (currShapeType == 1 && !currShape[0]) {
+                    tmpShape = getShape(currShapeType);
+                }
+            }
+
+            if (currShapeType == 6) {
+                if (currShape[6]) {
+                    for(tmpShapeX = 0; tmpShapeX < shapeSize; tmpShapeX++) {
+                        tmpShape[tmpShapeX] = true;
+                    }
+                }
+
+                if (!currShape[6]) {
+                    for(tmpShapeY = 0; tmpShapeY < shapeSize; tmpShapeY++) {
+                        tmpShape[getArrayIndexFromXY(2, tmpShapeY, shapeSize)] = true;
+                    }
+                }
+            }
+
+            if (currShapeType == 2 || currShapeType == 3) {
+                for (tmpShapeY = 0; tmpShapeY < shapeSize; tmpShapeY++) {
+                    for (tmpShapeX = 0; tmpShapeX < shapeSize; tmpShapeX++) {
+                        tmpShape[getArrayIndexFromXY(tmpShapeX, tmpShapeY, shapeSize)] = currShape[getArrayIndexFromXY(tmpShapeY, shapeSize - 1 - tmpShapeX, shapeSize)]
+                    }
+                }
+            }
+
+            var collided = checkCollision(shapeX, shapeY, tmpShape);
+            
+            if (!collided) {
+                currShape = tmpShape;
+                return currShape;
+            }
+
+            if (collided && currShapeType != 4 && currShapeType != 6) {
+                if (shapeX < gameFieldWidth / 2) {
+                    shapeX += 1;
+
+                    if (!checkCollision(shapeX, shapeY, tmpShape)) {
+                        currShape = tmpShape;
+                        currShapeX = shapeX;
+                        return currShape;
+                    }
+                }
+
+                if (shapeX > gameFieldWidth / 2) {
+                    shapeX -= 1;
+
+                    if (!checkCollision(shapeX, shapeY, tmpShape)) {
+                        currShape = tmpShape;
+                        currShapeX = shapeX;
+                        return currShape;
+                    }
+                }
+            }
+
+            return currShape;
+        }
+
+        function checkCollision(x, y, shape) {
+            for (shapeY = 0; shapeY < shapeSize; shapeY++) {
+                for (shapeX = 0; shapeX < shapeSize; shapeX++) {
+                    if (shape[getArrayIndexFromXY(shapeX, shapeY, shapeSize)]) {
+                        var isInBounds = (shapeX + x < gameFieldWidth) && (shapeX + x >= 0) && (shapeY + y < gameFieldHeight);
+ 
+                        if (!isInBounds || gameFieldPieces[getArrayIndexFromXY(shapeX + x, shapeY + y, gameFieldWidth)]) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function translateShapeIntoField(x, y, shape) {
+            for (shapeY = 0; shapeY < shapeSize; shapeY++) {
+                for (shapeX = 0; shapeX < shapeSize; shapeX++) {
+                    if (shapeX + x < gameFieldWidth && shapeX + x >= 0 && shapeY + y < gameFieldHeight) {
+                        var pieceState = currShape[getArrayIndexFromXY(shapeX, shapeY, shapeSize)];
+
+                        if (pieceState) {
+                            gameFieldPieces[getArrayIndexFromXY(shapeX + x, shapeY + y, gameFieldWidth)] = pieceState;
+                        }
+                    }
+                }
+            }
+
+            currShape = null;
+        }
+        
+        function showPauseState() {
+            var pauseElement = document.getElementById("pauseState");
+
+            var hidden = pauseElement.classList.contains("pause");
+
+            if (hidden) {
+                pauseElement.classList.remove("pause");
+            }
+
+            if (!hidden) {
+                pauseElement.classList.add("pause");
+            }
+
+            pauseTimer = setTimeout(showPauseState, 500);
+        }
+
+        function initialShapeRotation(x, y, shape, shapeType) {
+            if (shapeType == 4) {
+                return shape;
+            }
+
+            var rotationCountMax = 3;
+
+            var rotationCount = Math.floor(Math.random() * rotationCountMax);
+
+            for (rotation = 0; rotation < rotationCount; rotation++) {
+                shape = rotateShape(x, y, shape, shapeType);
+            }
+
+            return shape;
+        }
+
+        function hidePauseState() {
+            clearInterval(pauseTimer);
+            var pauseElement = document.getElementById("pauseState");
+
+            if (!pauseElement.classList.contains("pause")) {
+                document.getElementById("pauseState").classList.add("pause");
+            }
+        }
+
+        function clearNextShapeField() {
+            nextShapeFieldContext.clearRect(0, 0, nextShapeField.width, nextShapeField.height);
+        }
+
+        function initializeNewShape() {
+            currShapeType = nextShapeType || nextShapeType == 0 ? nextShapeType : getNextShapeType();
+            currShapeX = currShapeType == 6 ? startShapeX - 2 : startShapeX;
+            currShapeY = startShapeY;
+            nextShapeType = getNextShapeType();
+            currShape = nextShape.length > 0 ? nextShape : getShape(currShapeType);
+            currShape = nextShape.length > 0 ? nextShape : initialShapeRotation(currShapeX, currShapeY, currShape, currShapeType);
+            nextShape = getShape(nextShapeType);
+            nextShape = initialShapeRotation(currShapeX, currShapeY, nextShape, nextShapeType);
+            clearNextShapeField();
+            nextShapeColor = getShapeHexColor(nextShapeType);
+            drawShape(0, 0, nextShape, nextShapeFieldContext, nextShapeColor);
+            currShapeColor = getShapeHexColor(currShapeType);
+            clearingLines = false;
+        }
+
+        function moveDownAndCheckForGameOver() {
+            if (!moveShapeDown()){
+                if (currShapeY <= 0 && checkCollision(currShapeX, currShapeY + 1, currShape)) {
+                    gameOver();
+                }
+
+                if (currShapeY > 0) {
+                    clearingLines = true;
+                    translateShapeIntoField(currShapeX, currShapeY, currShape);
+
+                    if (removeLines(checkLines())){
+                        initializeNewShape();
+                    }
+                }
+            }
+        }
+
+        function gameOver() {
+            isGamePaused = true;
+            isGameOver = true;
+            clearInterval(gameTimer);
+            window.onkeydown = gameOverControls;
+            clearGameField();
+            clearNextShapeField();
+        }
+
+        function gameFunction() {
+            moveDownAndCheckForGameOver();
+
+            if (!isGameOver) {
+                drawGameField();
+            }
+        }
+
+        function startGame() {
+            isGamePaused = false;
+            isGameOver = false;
+            window.onkeydown = gameControls;
+            window.onkeyup = rotationUnlock;
+            initializeGameField();
+            gameFunction();
+            gameTimer = setInterval(gameFunction, gameSpeed);
+        }
+
+        function pauseUnpauseGame() {
+            if (!isGamePaused){
+                clearInterval(gameTimer);
+                showPauseState();
+            }
+            
+            if (isGamePaused) {
+                gameTimer = setInterval(gameFunction, gameSpeed);
+                hidePauseState();
+            }
+
+            isGamePaused = !isGamePaused;
+        }
+
+        window.onload = function () {
+            startGame();
+        }
+
+        var gameControls = function(event) {
+            if (!clearingLines && (event.keyCode == leftArrow || event.keyCode == rightArrow|| event.keyCode == downArrow || event.keyCode == upArrow) && !isGamePaused) {
+                if (event.keyCode == leftArrow) {
+                    moveShapeLeft();
+                }
+
+                if (event.keyCode == rightArrow) {
+                    moveShapeRight();
+                }
+
+                if (event.keyCode == downArrow) {
+                    moveDownAndCheckForGameOver();
+                }
+
+                if (event.keyCode == upArrow && !rotateKeyHold) {
+                    rotateKeyHold = true;
+                    currShape = rotateShape(currShapeX, currShapeY, currShape, currShapeType);
+                }
+
+                if (!isGameOver) {
+                    drawGameField();
+                }
+            }
+                
+            if (event.keyCode == enterKey) {
+                pauseUnpauseGame();
+            }
+
+            if (event.keyCode == loadCustomTexturesKey) {
+                if (!isGamePaused) {
+                    clearInterval(gameTimer);
+                    showPauseState();
+                    isGamePaused = true;
+                }
+
+                if (textures.src === originalTextures) {
+                    var inputWithNewTextures = document.getElementById("customTextures");
+                    inputWithNewTextures.click();
+                }
+
+                if (textures.src !== originalTextures) {
+                    textures.src = originalTextures;
+                }
+            }
+
+            if (event.keyCode == changeRenderModeKey) {
+                changeRenderMode();
+            }
+        }
+
+        var changeRenderMode = function(forceTextures) {
+            isUseTextures = !isUseTextures;
+            if (forceTextures) {
+                isUseTextures = forceTextures;
+            }
+
+            if (isUseTextures || forceTextures) {
+                shapeColors = shapeTextures;
+                if (typeof currShapeColor === 'string' && typeof nextShapeColor === 'string') {
+                    currShapeColor = shapeColors[originalColors.findIndex((elem) => {return currShapeColor == elem;})];
+                    nextShapeColor = shapeColors[originalColors.findIndex((elem) => {return nextShapeColor == elem;})];
+                }
+            }
+
+            if (!isUseTextures) {
+                shapeColors = originalColors;
+                currShapeColor = shapeColors[currShapeColor];
+                nextShapeColor = shapeColors[nextShapeColor];
+            }
+            drawGameField();
+        }
+
+        var rotationUnlock = function(event) {
+            if (event.keyCode == upArrow) {
+                rotateKeyHold = false;
+            }
+        }
+
+        var gameOverControls = function(event) {
+            if (event.keyCode == enterKey) {
+                startGame();
+            }
+        }
+
+        function loadCustomTextures (input){
+            var fileToLoad = input.files[0];
+            var fileReader = new FileReader();
+
+            fileReader.onload = function(fileLoadedEvent) {
+                textures.src = fileLoadedEvent.target.result;
+                input.value = '';
+            }
+            fileReader.readAsDataURL(fileToLoad);
+        }
+    </script>
+</body>
+
+</html>

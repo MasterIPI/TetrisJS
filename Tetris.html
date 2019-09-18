@@ -178,6 +178,10 @@
 
                 context.drawImage(textures, this.color * textureSize, 0, textureSize, textureSize, x * pieceSize, y * pieceSize, pieceSize, pieceSize);
             }
+
+            setColor(color) {
+                this.color = color;
+            }
         }
 
     class Shape {
@@ -402,6 +406,17 @@
             return Math.floor(Math.random() * this.shapes.length);
         }
 
+        setColor(textures) {
+            this.shapeColors = textures;
+            for (let piece = 0; piece < this.gameFieldPieces.length; piece++) {
+                let currentPiece = this.gameFieldPieces[piece];
+                if (!currentPiece.isSolid) {
+                    continue;
+                }
+                currentPiece.setColor(this.shapeColors[this.originalColors.findIndex((elem) => { return currentPiece.color == elem; })]);
+            }
+        }
+
         changeRenderMode(forceTextures) {
             this.isUseTextures = !this.isUseTextures;
             if (forceTextures) {
@@ -409,7 +424,7 @@
             }
 
             if (this.isUseTextures || forceTextures) {
-                this.shapeColors = this.shapeTextures;
+                this.setColor(this.shapeTextures);
                 if (typeof this.currShapeColor === 'string' && typeof this.nextShapeColor === 'string') {
                     this.currShapeColor = this.shapeColors[this.originalColors.findIndex((elem) => { return this.currShapeColor == elem; })];
                     this.nextShapeColor = this.shapeColors[this.originalColors.findIndex((elem) => { return this.nextShapeColor == elem; })];
@@ -417,7 +432,7 @@
             }
 
             if (!this.isUseTextures) {
-                this.shapeColors = this.originalColors;
+                this.setColor(this.originalColors);
                 this.currShapeColor = this.shapeColors[this.currShapeColor];
                 this.nextShapeColor = this.shapeColors[this.nextShapeColor];
             }
@@ -834,64 +849,64 @@
         }
 
         gameControls(event) {
-            if (!this.clearingLines && (event.keyCode == this.leftArrow || event.keyCode == this.rightArrow || event.keyCode == this.downArrow || event.keyCode == this.upArrow) && !this.isGamePaused) {
-                if (event.keyCode == this.leftArrow) {
-                    this.moveShapeLeft();
+            if (!game.clearingLines && (event.keyCode == game.leftArrow || event.keyCode == game.rightArrow || event.keyCode == game.downArrow || event.keyCode == game.upArrow) && !game.isGamePaused) {
+                if (event.keyCode == game.leftArrow) {
+                    game.moveShapeLeft();
                 }
 
-                if (event.keyCode == this.rightArrow) {
-                    this.moveShapeRight();
+                if (event.keyCode == game.rightArrow) {
+                    game.moveShapeRight();
                 }
 
-                if (event.keyCode == this.downArrow) {
-                    this.moveDownAndCheckForGameOver();
+                if (event.keyCode == game.downArrow) {
+                    game.moveDownAndCheckForGameOver();
                 }
 
-                if (event.keyCode == this.upArrow && !this.rotateKeyHold) {
-                    this.rotateKeyHold = true;
-                    this.currShape = this.rotateShape(this.currShapeX, this.currShapeY, this.currShape, this.currShapeType);
+                if (event.keyCode == game.upArrow && !game.rotateKeyHold) {
+                    game.rotateKeyHold = true;
+                    game.currShape = game.rotateShape(game.currShapeX, game.currShapeY, game.currShape, game.currShapeType);
                 }
 
-                if (!this.isGameOver) {
-                    this.drawGameField();
+                if (!game.isGameOver) {
+                    game.drawGameField();
                 }
             }
 
-            if (event.keyCode == this.enterKey) {
-                this.pauseUnpauseGame();
+            if (event.keyCode == game.enterKey) {
+                game.pauseUnpauseGame();
             }
 
-            if (event.keyCode == this.loadCustomTexturesKey) {
-                if (!this.isGamePaused) {
-                    clearInterval(gameTimer);
-                    this.showPauseState();
-                    this.isGamePaused = true;
+            if (event.keyCode == game.loadCustomTexturesKey) {
+                if (!game.isGamePaused) {
+                    clearInterval(game.gameTimer);
+                    game.showPauseState();
+                    game.isGamePaused = true;
                 }
 
-                if (this.textures.src === this.originalTextures) {
+                if (game.textures.src === game.originalTextures) {
                     let inputWithNewTextures = document.getElementById("customTextures");
                     inputWithNewTextures.click();
                 }
 
-                if (this.textures.src !== this.originalTextures) {
-                    this.textures.src = this.originalTextures;
+                if (game.textures.src !== game.originalTextures) {
+                    game.textures.src = game.originalTextures;
                 }
             }
 
-            if (event.keyCode == this.changeRenderModeKey) {
-                this.changeRenderMode();
+            if (event.keyCode == game.changeRenderModeKey) {
+                game.changeRenderMode();
             }
         }
 
         rotationUnlock(event) {
-            if (event.keyCode == this.upArrow) {
-                rotateKeyHold = false;
+            if (event.keyCode == game.upArrow) {
+                game.rotateKeyHold = false;
             }
         }
 
         gameOverControls(event) {
-            if (event.keyCode == this.enterKey) {
-                this.start();
+            if (event.keyCode == game.enterKey) {
+                game.start();
             }
         }
 
@@ -907,15 +922,15 @@
         }
     }
 
+    let gameField = document.getElementById("gameField");
+    let nextShapeField = document.getElementById("nextShape");
+    let scoreCount = document.getElementById("scoreCount");
+    let levelDisplay = document.getElementById("level");
+    var game = new Game(gameField, nextShapeField, scoreCount, levelDisplay);
+    window.onload = function () {
 
-        window.onload = function () {
-            let gameField = document.getElementById("gameField");
-            let nextShapeField = document.getElementById("nextShape");
-            let scoreCount = document.getElementById("scoreCount");
-            let levelDisplay = document.getElementById("level");
-            let game = new Game(gameField, nextShapeField, scoreCount, levelDisplay);
-            game.start();
-        }
+        game.start();
+    }
     </script>
 </body>
 

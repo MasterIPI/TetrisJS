@@ -8,6 +8,14 @@
             padding: 0;
         }
 
+        span {
+            font-family: sans-serif;
+        }
+
+        label {
+            font-family: sans-serif;
+        }
+
         .game-field-wrapper {
             position: absolute;
             display: flex;
@@ -239,8 +247,6 @@
                             false, true, false, false
                         ])
                     ];
-
-                    this.counterTemp = -1;
                 }
 
                 setFieldCurrentShape() {
@@ -669,7 +675,8 @@
                             fileReader.onload = (fileLoadedEvent) => {
                                 this.textures.src = fileLoadedEvent.target.result;
                                 event.target.value = '';
-                                this.setUnsetRenderTextures();
+                                setTimeout(() => {
+                                    this.setUnsetRenderTextures(); }, 0);
                             }
                             fileReader.readAsDataURL(fileToLoad);
                         }
@@ -711,8 +718,11 @@
 
                     if(!this.textures.onload) {
                         this.textures.onload = (event) => {
-                            event.target.width = this.naturalWidth;
-                            event.target.height = this.naturalHeight;
+                            if (event.target.naturalWidth / event.target.naturalHeight !== 7) {
+                                event.target.src = this.originalTextures;
+                                alert("Textures has inappropriate size!");
+                                return;
+                            }
                         };
                     }
                     this.textures.src = this.originalTextures;

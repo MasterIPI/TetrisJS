@@ -25,11 +25,44 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
   output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'index.bundle.js',
     clean: true,
   },
-  plugins: [new HtmlWebpackPlugin({
-      template: './index.html'
-  })],
+  plugins: [
+      new HtmlWebpackPlugin({
+        template: './index.html',
+        inject: false
+      }),
+      {
+        apply(compiler) {
+            compiler.hooks.shouldEmit.tap('RenderJsToHtmlPlugin', function (compilation) {
+            let jsAssets = [];
+            let htmlAsset;
+
+            for (let asset of compilation.getAssets()) {
+                if (asset.name.endsWith('.js')) {
+                    jsAssets.push(asset);
+                    continue;
+                }
+
+                if (asset.name.endsWith('.html')) {
+                    htmlAsset = asset;
+                    continue;
+                }
+            }
+
+            for (let asset of jsAssets) {
+                compilation.deleteAsset(asset.name);
+            }
+
+            let jsContent = jsAssets.map(content => content.source._value).join('');
+            jsContent = '<script>' + jsContent + '</script></body>';
+
+            let split = htmlAsset.source._value.split('</body>');
+
+            htmlAsset.source._value = split.join(jsContent);
+            return true;
+            });
+        }
+      },
+    ],
 };

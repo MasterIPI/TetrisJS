@@ -3,9 +3,64 @@
 <head>
     <title>Tetris Game in browser</title>
     <style>
-        body {
+        html,body {
             margin: 0;
             padding: 0;
+        }
+
+        .game-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-field-wrapper {
+            margin: 0 20px;
+            max-width: 150px;
+            max-height: 300px;
+        }
+
+        .next-shape-wrapper {
+            margin: 0;
+            max-width: 60px;
+            max-height: 60px;
+        }
+
+        .game-field-wrapper,.next-shape-wrapper {
+            padding: 0;
+            background-color: #000000;
+            border: 1px #000000 solid;
+        }
+
+        .score-wrapper {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+        }
+        .game-screen,.game-over {
+            background-color: #ded7f1;
+        }
+
+        .game-over-wrapper {
+            width: inherit;
+            height: inherit;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .game-over {
+            border: 2px #000000 solid;
+            margin: 0;
+            padding: 0 15px;
+            text-align: center;
+        }
+
+        .pause {
+            visibility: hidden;
         }
 
         span {
@@ -16,122 +71,8 @@
             font-family: sans-serif;
         }
 
-        .game-field-wrapper {
-            position: absolute;
-            display: flex;
-            width: 152px;
-            height: 302px;
-            background-color: #000000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .game-screen {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #ded7f1;
-        }
-
-        .next-shape-wrapper {
-            margin-top: -75px;
-            left: calc(50% + 76px + 15px);
-            display: flex;
-            position: absolute;
-            background-color: #000000;
-            justify-content: center;
-            align-items: center;
-            width: 62px;
-            height: 62px;
-        }
-
-        .next-shape {
-            display: flex;
-        }
-
-        .score-wrapper,.level-wrapper {
-            left: calc(50% + 76px + 15px);
-            display: flex;
-            position: absolute;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-weight: 600;
-        }
-
-        .score-wrapper {
-            margin-top: -135px;
-        }
-
-        .level-wrapper {
-            margin-top: -20px;
-        }
-
-        .pause {
-            visibility: hidden;
-        }
-
         .d-none {
             display: none;
-        }
-
-        @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
-            /* IE10+ CSS */
-            .game-field-wrapper {
-                position: inherit;
-            }
-
-            .next-shape-wrapper {
-                margin-top: -105px;
-            }
-
-            .score-wrapper {
-                margin-top: -155px;
-            }
-
-            .level-wrapper {
-                margin-top: -40px;
-            }
-        }
-
-        @supports (-ms-accelerator:true) {
-            /* IE Edge 12+ CSS */ 
-            .game-field-wrapper {
-                position: inherit;
-            }
-
-            .next-shape-wrapper {
-                margin-top: -155px;
-            }
-
-            .score-wrapper {
-                margin-top: -265px;
-            }
-
-            .level-wrapper {
-                margin-top: -40px;
-            }
-        }
-
-        @supports (-ms-ime-align:auto) {
-            /* IE Edge 16+ CSS */ 
-            .game-field-wrapper {
-                position: inherit;
-            }
-
-            .next-shape-wrapper {
-                margin-top: -155px;
-            }
-
-            .score-wrapper {
-                margin-top: -265px;
-            }
-
-            .level-wrapper {
-                margin-top: -40px;
-            }
         }
     </style>
 </head>
@@ -141,19 +82,23 @@
         <div id="gameFieldWrapper" class="game-field-wrapper">
             <canvas id="gameField" class="game-field"></canvas>
         </div>
-        <div id="nextShapeWrapper" class="next-shape-wrapper">
-            <canvas id="nextShape" class="next-shape"></canvas>
-        </div>
         <div class="score-wrapper">
             <span>Score: <br><label id="scoreCount"></label></span>
-        </div>
-        <div class="level-wrapper">
+            <div id="nextShapeWrapper" class="next-shape-wrapper">
+                <canvas id="nextShape"></canvas>
+            </div>
             <span>
-                Level: <label id="level"></label> <br/>
-                <span id="pauseState" class="pause">Paused</span> 
+                Level: <label id="level"></label><br/>
+                <span id="pauseState" class="pause">Paused</span>
             </span>
         </div>
         <input type="file" id="customTextures" class="d-none" />
+        <div id="gameOver" class="game-over-wrapper d-none">
+            <span class="game-over">
+                <p>Game over!</p>
+                <p>To start a new game press any key.</p>
+            </span>
+        </div>
     </div>
     <script>
         class ShapePiece {
@@ -301,7 +246,7 @@
                     }
 
                     var collided = this.hasCollisions(tmpShape.x, tmpShape.y, tmpShape);
-            
+
                     if (!collided) {
                         return tmpShape;
                     }
@@ -386,10 +331,10 @@
                     let randomNumber = Math.random() * this.shapeList.length | 0;
                     this.nextShapeField = this.shapeList[randomNumber];
                     this.nextShapeField.setColor(randomNumber);
-                    
+
                     if (this.nextShapeField.shapeWidth > 2) {
                         let initialRotation = Math.random() * (this.nextShapeField.shapeWidth === this.nextShapeFieldSize ? this.nextShapeFieldSize / 2 : this.nextShapeField.shapeWidth) | 0;
-                    
+
                         if (initialRotation > 0) {
                             for (let rotation = 0; rotation < initialRotation; rotation++) {
                                 this.nextShapeField = this.rotateShape(this.nextShapeField, true);
@@ -448,7 +393,8 @@
                     for (let line = lineIndexes.length - 1; line >= 0; line--) {
                         for (let fieldY = lineIndexes[line]; fieldY >= 0; fieldY--) {
                             for (let fieldX = 0; fieldX < this.gameFieldWidth; fieldX++) {
-                                this.gameField[this.getArrayIndexFromXY(fieldX, fieldY, this.gameFieldWidth)] = fieldY === 0 ? new ShapePiece(false, 0) : this.gameField[this.getArrayIndexFromXY(fieldX, fieldY - 1, this.gameFieldWidth)]
+                                let piece = fieldY === 0 ? new ShapePiece(false, 0) : this.gameField[this.getArrayIndexFromXY(fieldX, fieldY - 1, this.gameFieldWidth)];
+                                this.gameField[this.getArrayIndexFromXY(fieldX, fieldY, this.gameFieldWidth)] = piece;
                             }
                         }
                     }
@@ -538,7 +484,6 @@
                                                    this.nextShapeContext);
                                 }
                             }
-                                           
                         }
 
                         if (fieldY === this.nextShapeField.shapeWidth - 1 && this.nextShapeField.shapeWidth < this.nextShapeFieldSize) {
@@ -583,26 +528,22 @@
                     this.gameFieldContext.fillStyle = originalContextfillStyle;
                 }
 
-                setUnsetPause() {
+                togglePause() {
                     this.isPaused = !this.isPaused;
                     if (!this.isPaused) {
                         this.timePassed = 0;
                     }
-                }
-
-                showHidePauseStatus() {
-                    let isHidden = this.pauseElement.classList.contains("pause");
-
-                    if (isHidden) {
-                        this.pauseElement.classList.remove("pause");
-                    }
-
-                    if (!isHidden) {
+                    
+                    if (!this.pauseElement.classList.contains("pause")) {
                         this.pauseElement.classList.add("pause");
                     }
                 }
 
-                setUnsetRenderTextures() {
+                togglePauseStatusVisibility() {
+                    this.pauseElement.classList.toggle("pause");
+                }
+
+                toggleRenderTextures() {
                     this.isTextures = !this.isTextures;
                     this.draw();
                 }
@@ -615,7 +556,7 @@
                     if (this.isPaused) {
                         if (this.timePassed >= this.showPauseTime) {
                             this.timePassed = 0;
-                            this.showHidePauseStatus();
+                            this.togglePauseStatusVisibility();
                         }
                     }
 
@@ -637,19 +578,18 @@
                     this.score = 0;
                     this.level = 1;
                     this.updateStatistics();
-                    this.setUnsetPause();
+                    this.gameOverElement.classList.remove("d-none");
                     window.onkeydown = null;
                     window.onkeyup = null;
                     window.onkeydown = (event) => {
-                        if (event.keyCode == 13) {
-                            this.init();
-                        }
+                        this.init();
+                        this.gameOverElement.classList.add("d-none");
                     }
                 }
 
                 loadUnloadCustomTextures() {
                     if (!this.isPaused) {
-                        this.setUnsetPause();
+                        this.togglePause();
                     }
 
                     if (this.textures.src === this.originalTextures) {
@@ -658,7 +598,7 @@
 
                     if (this.textures.src !== this.originalTextures) {
                         this.textures.src = this.originalTextures;
-                        this.setUnsetRenderTextures();
+                        this.toggleRenderTextures();
                     }
                 }
 
@@ -667,6 +607,8 @@
                     this.isPaused = false;
                     this.pauseElement = document.getElementById("pauseState");
                     this.customTexturesElem = document.getElementById("customTextures");
+                    this.gameOverElement = document.getElementById("gameOver");
+
                     if (!this.customTexturesElem.onchange) {
                         this.customTexturesElem.onchange = (event) => {
                             var fileToLoad = event.target.files[0];
@@ -676,7 +618,7 @@
                                 this.textures.src = fileLoadedEvent.target.result;
                                 event.target.value = '';
                                 setTimeout(() => {
-                                    this.setUnsetRenderTextures(); }, 0);
+                                    this.toggleRenderTextures(); }, 0);
                             }
                             fileReader.readAsDataURL(fileToLoad);
                         }
@@ -719,7 +661,9 @@
 
                     if(!this.textures.onload) {
                         this.textures.onload = (event) => {
-                            if (event.target.naturalWidth / event.target.naturalHeight !== 7) {
+                            this.textures.onload = null;
+
+                            if (event.target.naturalWidth / event.target.naturalHeight !== this.shapeList.length) {
                                 event.target.src = this.originalTextures;
                                 alert("Textures has inappropriate size!");
                                 return;
@@ -735,48 +679,44 @@
                     this.getNextShape();
                     this.getNextShape();
 
-                    if (!window.onkeydown) {
-                        window.onkeydown = (event) => {
-                            if (event.keyCode === 13) {
-                                this.setUnsetPause();
-                            }
+                    window.onkeydown = (event) => {
+                        if (event.keyCode === 13) {//enter
+                            this.togglePause();
+                        }
 
-                            if (event.keyCode === 84) {//t
-                                this.setUnsetRenderTextures();
-                            }
+                        if (event.keyCode === 84) {//t
+                            this.toggleRenderTextures();
+                        }
 
-                            if (event.keyCode == 80) {//p
-                                this.loadUnloadCustomTextures();
-                            }
+                        if (event.keyCode == 80) {//p
+                            this.loadUnloadCustomTextures();
+                        }
 
-                            if (this.isPaused) {
-                                return;
-                            }
+                        if (this.isPaused) {
+                            return;
+                        }
 
-                            if (event.keyCode === 37) {
-                                this.moveLeftShape();
-                            }
+                        if (event.keyCode === 37) {
+                            this.moveLeftShape();
+                        }
 
-                            if (event.keyCode === 38 && !this.isRotateKeyHeld) {
-                                this.isRotateKeyHeld = true;
-                                this.currentShape = this.rotateShape(this.currentShape);
-                            }
+                        if (event.keyCode === 38 && !this.isRotateKeyHeld) {
+                            this.isRotateKeyHeld = true;
+                            this.currentShape = this.rotateShape(this.currentShape);
+                        }
 
-                            if (event.keyCode === 39) {
-                                this.moveRightShape();
-                            }
+                        if (event.keyCode === 39) {
+                            this.moveRightShape();
+                        }
 
-                            if (event.keyCode === 40) {
-                                this.moveDownShape();
-                            }
+                        if (event.keyCode === 40) {
+                            this.moveDownShape();
                         }
                     }
 
-                    if (!window.onkeyup) {
-                        window.onkeyup = (event) => {
-                            if (event.keyCode === 38 && game.isRotateKeyHeld) {
-                                this.isRotateKeyHeld = false;
-                            }
+                    window.onkeyup = (event) => {
+                        if (event.keyCode === 38 && game.isRotateKeyHeld) {
+                            this.isRotateKeyHeld = false;
                         }
                     }
 

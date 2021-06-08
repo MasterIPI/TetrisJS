@@ -1,5 +1,53 @@
-class Game {
-    constructor(gameFieldWidth, gameFieldHeight) {
+import { Shape } from './shape';
+import { ShapePiece } from './shape-piece';
+
+export class Game {
+    pieceSize: number;
+    innerShapePieseSize: number;
+    gameSpeed: number;
+    previousFrameTime: number;
+    timePassed: number;
+    gameFieldHeight: number;
+    gameFieldWidth: number;
+    gameField: ShapePiece[];
+    currentShape: Shape;
+    nextShapeFieldSize: number;
+    nextShapeField: Shape;
+    score: number;
+    level: number;
+    scoreToLevelUpStep: number;
+    scoreToLevelUp: number;
+    isRotateKeyHeld: boolean;
+    isPaused: boolean;
+    isTextures: boolean;
+    textures: HTMLImageElement;
+    shapeList: Shape[];
+    shapeTextures: number[];
+    pointsPerLine: number;
+    nextLevelSpeedAcceleration: number;
+
+    gameFieldElem: HTMLCanvasElement;
+    gameFieldContext: CanvasRenderingContext2D;
+
+    nextShapeElem: HTMLCanvasElement;
+    nextShapeContext: CanvasRenderingContext2D;
+
+    scoreElem: HTMLElement;
+    levelElem: HTMLElement;
+
+    textureSize: number;
+    originalColors: Array<string> | Array<number>;
+
+    showPauseTime: number;
+    pauseElement: HTMLElement;
+
+    gameOverElement: HTMLElement;
+
+    customTexturesElem: HTMLInputElement;
+    originalTextures: string;
+    originalTextureSize: number;
+
+    constructor(gameFieldWidth: number, gameFieldHeight: number) {
         this.pieceSize = 15;
         this.innerShapePieseSize = 13;
 
@@ -9,11 +57,11 @@ class Game {
 
         this.gameFieldHeight = gameFieldHeight;
         this.gameFieldWidth = gameFieldWidth;
-        this.gameField = [];
+        this.gameField = new Array<ShapePiece>();
 
         this.currentShape;
         this.nextShapeFieldSize = 4;
-        this.nextShapeField = [];
+        this.nextShapeField = new Shape(0,0,0, new Array<boolean>(16));
 
         this.score = 0;
         this.level = 0;
@@ -26,7 +74,7 @@ class Game {
         this.isTextures = false;
         this.textures = new Image();
 
-        this.shapeList = [
+        this.shapeList = new Array<Shape>(
             new Shape(0, 0, 0, [
                 false, true, true,
                 true, true, false,
@@ -62,7 +110,7 @@ class Game {
                 false, true, false, false,
                 false, true, false, false
             ])
-        ];
+        );
     }
 
     setFieldCurrentShape() {
@@ -84,7 +132,7 @@ class Game {
         }
     }
 
-    rotateShape(shape, isNextShape) {
+    rotateShape(shape: Shape, isNextShape: boolean) {
         if (shape.shapeWidth === 2) {
             return shape;
         }
@@ -176,7 +224,7 @@ class Game {
         }
     }
 
-    getArrayIndexFromXY(x, y, fieldWidth) {
+    getArrayIndexFromXY(x: number, y: number, fieldWidth: number) {
         return y * fieldWidth + x;
     }
 
@@ -214,7 +262,7 @@ class Game {
         }
     }
 
-    hasCollisions(newX, newY, shape) {
+    hasCollisions(newX: number, newY: number, shape: Shape) {
         for (let shapeY = 0; shapeY < shape.shapeWidth; shapeY++) {
             for (let shapeX = 0; shapeX < shape.shapeWidth; shapeX++) {
                 if (shape.pieces[this.getArrayIndexFromXY(shapeX, shapeY, shape.shapeWidth)].isSolid) {
@@ -230,7 +278,7 @@ class Game {
         return false;
     }
 
-    getFullLinesIndexes(shape) {
+    getFullLinesIndexes(shape: Shape) {
         let lineIndexes = [];
 
         for (let shapeY = shape.shapeWidth - 1; shapeY >= 0; shapeY--) {
@@ -256,7 +304,7 @@ class Game {
         return lineIndexes;
     }
 
-    removeFullLines(lineIndexes) {
+    removeFullLines(lineIndexes: number[]) {
         if (lineIndexes.length === 0) {
             return;
         }
@@ -298,11 +346,11 @@ class Game {
     }
 
     updateStatistics() {
-        this.scoreElem.innerText = this.score;
-        this.levelElem.innerText = this.level;
+        this.scoreElem.innerText = this.score.toString();
+        this.levelElem.innerText = this.level.toString();
     }
 
-    drawPiece(x, y, piece, isCurrentShape, context) {
+    drawPiece(x: number, y: number, piece: ShapePiece, isCurrentShape: boolean, context: CanvasRenderingContext2D) {
         if (piece && piece.isSolid) {
             if (this.isTextures) {
                 context.drawImage(this.textures,
@@ -316,7 +364,7 @@ class Game {
                                 this.pieceSize);
             }
             else {
-                context.fillStyle = this.originalColors[piece.color];
+                context.fillStyle = this.originalColors[piece.color].toString();
                 context.fillRect(x * this.pieceSize + 1,
                                 y * this.pieceSize + 1,
                                 this.innerShapePieseSize,
@@ -439,7 +487,7 @@ class Game {
         this.gameOverElement.classList.remove("d-none");
         window.onkeydown = null;
         window.onkeyup = null;
-        window.onkeydown = (event) => {
+        window.onkeydown = () => {
             this.init();
             this.gameOverElement.classList.add("d-none");
         }
@@ -464,17 +512,17 @@ class Game {
         this.showPauseTime = 500;
         this.isPaused = false;
         this.pauseElement = document.getElementById("pauseState");
-        this.customTexturesElem = document.getElementById("customTextures");
+        this.customTexturesElem = <HTMLInputElement>document.getElementById("customTextures");
         this.gameOverElement = document.getElementById("gameOver");
 
         if (!this.customTexturesElem.onchange) {
             this.customTexturesElem.onchange = (event) => {
-                var fileToLoad = event.target.files[0];
+                var fileToLoad = (<HTMLInputElement>event.target).files[0];
                 var fileReader = new FileReader();
 
                 fileReader.onload = (fileLoadedEvent) => {
-                    this.textures.src = fileLoadedEvent.target.result;
-                    event.target.value = '';
+                    this.textures.src = fileLoadedEvent.target.result.toString();
+                    (<HTMLInputElement>event.target).value = '';
                     setTimeout(() => {
                         this.toggleRenderTextures(); }, 0);
                 }
@@ -491,13 +539,13 @@ class Game {
         this.originalColors = ['#24D64B', '#CDDC39', '#FF0000', '#302AD4', '#5CEDFA', '#B13AE8', '#FF5722'];
         this.shapeTextures = [0, 1, 2, 3, 4, 5, 6];
 
-        this.gameFieldElem = document.getElementById("gameField");
+        this.gameFieldElem = <HTMLCanvasElement>document.getElementById("gameField");
         this.gameFieldElem.width = this.pieceSize * this.gameFieldWidth;
         this.gameFieldElem.height = this.pieceSize * this.gameFieldHeight;
         this.gameFieldElem.style.backgroundColor = '#000000';
         this.gameFieldContext = this.gameFieldElem.getContext("2d");
 
-        this.nextShapeElem = document.getElementById("nextShape");
+        this.nextShapeElem = <HTMLCanvasElement>document.getElementById("nextShape");
         this.nextShapeElem.width = this.pieceSize * this.nextShapeFieldSize;
         this.nextShapeElem.height = this.pieceSize * this.nextShapeFieldSize;
         this.nextShapeElem.style.backgroundColor = '#000000';
@@ -505,7 +553,7 @@ class Game {
 
         this.scoreElem = document.getElementById("scoreCount");
         this.score = 0;
-        this.scoreElem.innerText = this.score;
+        this.scoreElem.innerText = this.score.toString();
 
         this.gameSpeed = 1000;
         this.pointsPerLine = 100;
@@ -515,19 +563,19 @@ class Game {
 
         this.levelElem = document.getElementById("level");
         this.level = 1;
-        this.levelElem.innerText = this.level;
+        this.levelElem.innerText = this.level.toString();
 
         if(!this.textures.onload) {
             this.textures.onload = (event) => {
                 this.textures.onload = null;
-
-                if (event.target.naturalWidth / event.target.naturalHeight !== this.shapeList.length) {
-                    event.target.src = this.originalTextures;
+                const eventTarget = (<HTMLImageElement>event.target);
+                if (eventTarget.naturalWidth / eventTarget.naturalHeight !== this.shapeList.length) {
+                    eventTarget.src = this.originalTextures;
                     alert("Textures has inappropriate size!");
                     return;
                 }
 
-                this.textureSize = event.target.naturalHeight;
+                this.textureSize = eventTarget.naturalHeight;
             };
         }
         this.textures.src = this.originalTextures;
@@ -537,7 +585,7 @@ class Game {
         this.getNextShape();
         this.getNextShape();
 
-        window.onkeydown = (event) => {
+        window.onkeydown = (event: KeyboardEvent) => {
             if (event.keyCode === 13) {//enter
                 this.togglePause();
             }
@@ -560,7 +608,7 @@ class Game {
 
             if (event.keyCode === 38 && !this.isRotateKeyHeld) {
                 this.isRotateKeyHeld = true;
-                this.currentShape = this.rotateShape(this.currentShape);
+                this.currentShape = this.rotateShape(this.currentShape, false);
             }
 
             if (event.keyCode === 39) {
@@ -572,8 +620,8 @@ class Game {
             }
         }
 
-        window.onkeyup = (event) => {
-            if (event.keyCode === 38 && game.isRotateKeyHeld) {
+        window.onkeyup = (event: KeyboardEvent) => {
+            if (event.keyCode === 38 && this.isRotateKeyHeld) {
                 this.isRotateKeyHeld = false;
             }
         }

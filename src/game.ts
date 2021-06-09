@@ -453,7 +453,7 @@ export class Game {
             this.timePassed = 0;
         }
 
-        this.pauseElement.parentElement.classList.toggle("v-hidden");
+        this.pauseElement.parentElement.classList.toggle('v-hidden');
     }
 
     toggleRenderTextures() {
@@ -484,12 +484,12 @@ export class Game {
         this.score = 0;
         this.level = 1;
         this.updateStatistics();
-        this.gameOverElement.classList.remove("d-none");
+        this.gameOverElement.classList.remove('d-none');
         window.onkeydown = null;
         window.onkeyup = null;
         window.onkeydown = () => {
             this.init();
-            this.gameOverElement.classList.add("d-none");
+            this.gameOverElement.classList.add('d-none');
         }
     }
 
@@ -511,9 +511,9 @@ export class Game {
     init() {
         this.showPauseTime = 500;
         this.isPaused = false;
-        this.pauseElement = document.getElementById("pauseState");
-        this.customTexturesElem = <HTMLInputElement>document.getElementById("customTextures");
-        this.gameOverElement = document.getElementById("gameOver");
+        this.pauseElement = document.getElementById('pauseState');
+        this.customTexturesElem = <HTMLInputElement>document.getElementById('customTextures');
+        this.gameOverElement = document.getElementById('gameOver');
 
         if (!this.customTexturesElem.onchange) {
             this.customTexturesElem.onchange = (event) => {
@@ -539,19 +539,19 @@ export class Game {
         this.originalColors = ['#24D64B', '#CDDC39', '#FF0000', '#302AD4', '#5CEDFA', '#B13AE8', '#FF5722'];
         this.shapeTextures = [0, 1, 2, 3, 4, 5, 6];
 
-        this.gameFieldElem = <HTMLCanvasElement>document.getElementById("gameField");
+        this.gameFieldElem = <HTMLCanvasElement>document.getElementById('gameField');
         this.gameFieldElem.width = this.pieceSize * this.gameFieldWidth;
         this.gameFieldElem.height = this.pieceSize * this.gameFieldHeight;
         this.gameFieldElem.style.backgroundColor = '#000000';
-        this.gameFieldContext = this.gameFieldElem.getContext("2d");
+        this.gameFieldContext = this.gameFieldElem.getContext('2d');
 
-        this.nextShapeElem = <HTMLCanvasElement>document.getElementById("nextShape");
+        this.nextShapeElem = <HTMLCanvasElement>document.getElementById('nextShape');
         this.nextShapeElem.width = this.pieceSize * this.nextShapeFieldSize;
         this.nextShapeElem.height = this.pieceSize * this.nextShapeFieldSize;
         this.nextShapeElem.style.backgroundColor = '#000000';
-        this.nextShapeContext = this.nextShapeElem.getContext("2d");
+        this.nextShapeContext = this.nextShapeElem.getContext('2d');
 
-        this.scoreElem = document.getElementById("scoreCount");
+        this.scoreElem = document.getElementById('scoreCount');
         this.score = 0;
         this.scoreElem.innerText = this.score.toString();
 
@@ -561,7 +561,7 @@ export class Game {
         this.scoreToLevelUpStep = 4000;
         this.scoreToLevelUp = this.scoreToLevelUpStep;
 
-        this.levelElem = document.getElementById("level");
+        this.levelElem = document.getElementById('level');
         this.level = 1;
         this.levelElem.innerText = this.level.toString();
 
@@ -571,7 +571,7 @@ export class Game {
                 const eventTarget = (<HTMLImageElement>event.target);
                 if (eventTarget.naturalWidth / eventTarget.naturalHeight !== this.shapeList.length) {
                     eventTarget.src = this.originalTextures;
-                    alert("Textures has inappropriate size!");
+                    alert('Textures has inappropriate size!');
                     return;
                 }
 
@@ -626,8 +626,8 @@ export class Game {
             }
         }
 
-        if (!this.pauseElement.classList.contains("pause")) {
-            this.pauseElement.classList.add("pause");
+        if (!this.pauseElement.classList.contains('pause')) {
+            this.pauseElement.classList.add('pause');
         }
 
         this.gameProcess();

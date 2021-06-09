@@ -1,8 +1,8 @@
-const path = require('path');
+const RenderRawStylesAndJsToHtmlPlugin = require('./plugin/render-raw-styles-and-js-to-html-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: ['./src/index.ts', './styles/main.scss'],
   mode: 'production',
   module: {
     rules: [
@@ -13,10 +13,26 @@ module.exports = {
       },
       {
         test: /\.s[ac]ss$/i,
+        exclude: /node_modules/,
         use: [
-          "style-loader",
-          "css-loader",
-          "sass-loader",
+          {
+            loader: 'file-loader',
+            options: {
+                name: '[name].css',
+            }
+          },
+          {
+              loader: 'extract-loader'
+          },
+          {
+              loader: 'css-loader?-url'
+          },
+          {
+              loader: 'postcss-loader'
+          },
+          {
+              loader: 'sass-loader'
+          }
         ],
       },
     ],
@@ -26,43 +42,16 @@ module.exports = {
   },
   output: {
     clean: true,
+    publicPath: '',
   },
   plugins: [
       new HtmlWebpackPlugin({
         template: './index.html',
         inject: false
       }),
-      {
-        apply(compiler) {
-            compiler.hooks.shouldEmit.tap('RenderJsToHtmlPlugin', function (compilation) {
-            let jsAssets = [];
-            let htmlAsset;
-
-            for (let asset of compilation.getAssets()) {
-                if (asset.name.endsWith('.js')) {
-                    jsAssets.push(asset);
-                    continue;
-                }
-
-                if (asset.name.endsWith('.html')) {
-                    htmlAsset = asset;
-                    continue;
-                }
-            }
-
-            for (let asset of jsAssets) {
-                compilation.deleteAsset(asset.name);
-            }
-
-            let jsContent = jsAssets.map(content => content.source._value).join('');
-            jsContent = '<script>' + jsContent + '</script></body>';
-
-            let split = htmlAsset.source._value.split('</body>');
-
-            htmlAsset.source._value = split.join(jsContent);
-            return true;
-            });
-        }
-      },
+      new RenderRawStylesAndJsToHtmlPlugin({
+        preventEmit: true,
+        htmlNameToInject: 'index.html',
+      })
     ],
 };

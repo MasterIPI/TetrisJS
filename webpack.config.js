@@ -40,7 +40,18 @@ module.exports = {
       new MiniCssExtractPlugin(),
       new HtmlWebpackPlugin({
         template: './index.html',
-        inject: false
+        inject: false,
+        minify: {
+          collapseWhitespace: true,
+          keepClosingSlash: true,
+          removeComments: true,
+          removeRedundantAttributes: true,
+          removeScriptTypeAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          useShortDoctype: true,
+          removeAttributeQuotes: true,
+          removeRedundantAttributes: true,
+        },
       }),
       new RenderRawStylesAndJsToHtmlPlugin({
         preventEmit: true,

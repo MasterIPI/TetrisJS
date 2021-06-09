@@ -1,5 +1,6 @@
 const RenderRawStylesAndJsToHtmlPlugin = require('./plugin/render-raw-styles-and-js-to-html-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   entry: ['./src/index.ts', './styles/main.scss'],
@@ -16,22 +17,13 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'file-loader',
-            options: {
-                name: '[name].css',
-            }
+            loader: MiniCssExtractPlugin.loader
           },
           {
-              loader: 'extract-loader'
+            loader: 'css-loader'
           },
           {
-              loader: 'css-loader?-url'
-          },
-          {
-              loader: 'postcss-loader'
-          },
-          {
-              loader: 'sass-loader'
+            loader: 'sass-loader'
           }
         ],
       },
@@ -45,6 +37,7 @@ module.exports = {
     publicPath: '',
   },
   plugins: [
+      new MiniCssExtractPlugin(),
       new HtmlWebpackPlugin({
         template: './index.html',
         inject: false

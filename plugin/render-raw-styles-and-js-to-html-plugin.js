@@ -53,7 +53,7 @@ module.exports = function RenderRawStylesAndJsToHtmlPlugin(options) {
 
             let cssContent = '';
             if (isSeparateCssPresent) {
-                cssContent = `<style>${cssAssets.map(asset => asset.source._value).join('')}</style></head>`;
+                cssContent = `<style>${cssAssets.map(asset => asset.source.buffer().toString().replace('\n', '')).join('')}</style></head>`;
                 cssAssets = null;
                 htmlContent.splice(1, 0, cssContent);
             }

@@ -17,6 +17,7 @@ export class Game {
     level: number;
     scoreToLevelUpStep: number;
     scoreToLevelUp: number;
+    isKeyHeld: boolean;
     isRotateKeyHeld: boolean;
     isPaused: boolean;
     isTextures: boolean;
@@ -68,6 +69,7 @@ export class Game {
         this.scoreToLevelUpStep = 0;
         this.scoreToLevelUp = 0;
 
+        this.isKeyHeld = false;
         this.isRotateKeyHeld = false;
         this.isPaused = true;
 
@@ -208,6 +210,12 @@ export class Game {
         }
 
         this.setFieldCurrentShape();
+
+        if (this.currentShape.y < 0) {
+            this.gameOver();
+            return;
+        }
+
         this.removeFullLines(this.getFullLinesIndexes(this.currentShape));
         this.getNextShape();
     }
@@ -266,8 +274,12 @@ export class Game {
         for (let shapeY = 0; shapeY < shape.shapeWidth; shapeY++) {
             for (let shapeX = 0; shapeX < shape.shapeWidth; shapeX++) {
                 if (shape.pieces[this.getArrayIndexFromXY(shapeX, shapeY, shape.shapeWidth)].isSolid) {
-                    let isInBounds = (shapeX + newX < this.gameFieldWidth) && (shapeX + newX >= 0) && (shapeY + newY < this.gameFieldHeight);
-                    let gameFieldPiece = this.gameField[this.getArrayIndexFromXY(shapeX + newX, shapeY + newY, this.gameFieldWidth)];
+                    let gameFieldPieceX = shapeX + newX;
+                    let gameFieldPieceY = shapeY + newY;
+
+                    let isInBounds = (gameFieldPieceX < this.gameFieldWidth) && (gameFieldPieceX >= 0) && (gameFieldPieceY < this.gameFieldHeight);
+                    let gameFieldPiece = this.gameField[this.getArrayIndexFromXY(gameFieldPieceX, gameFieldPieceY, this.gameFieldWidth)];
+
                     if (!isInBounds || (gameFieldPiece && gameFieldPiece.isSolid)) {
                         return true;
                     }
@@ -486,8 +498,10 @@ export class Game {
         this.updateStatistics();
         this.gameOverElement.classList.remove('d-none');
         window.onkeydown = null;
-        window.onkeyup = null;
         window.onkeydown = () => {
+            if (this.isKeyHeld) {
+                return;
+            }
             this.init();
             this.gameOverElement.classList.add('d-none');
         }
@@ -585,17 +599,21 @@ export class Game {
         this.getNextShape();
         this.getNextShape();
 
+        window.onkeydown = null;
         window.onkeydown = (event: KeyboardEvent) => {
-            if (event.keyCode === 13) {//enter
+            if (event.keyCode === 13 && !this.isKeyHeld) {//enter
                 this.togglePause();
+                this.isKeyHeld = true;
             }
 
-            if (event.keyCode === 84) {//t
+            if (event.keyCode === 84 && !this.isKeyHeld) {//t
                 this.toggleRenderTextures();
+                this.isKeyHeld = true;
             }
 
-            if (event.keyCode == 80) {//p
+            if (event.keyCode === 80 && !this.isKeyHeld) {//p
                 this.loadUnloadCustomTextures();
+                this.isKeyHeld = true;
             }
 
             if (this.isPaused) {
@@ -618,12 +636,17 @@ export class Game {
             if (event.keyCode === 40) {
                 this.moveDownShape();
             }
+
+            this.isKeyHeld = true;
         }
 
+        window.onkeyup = null;
         window.onkeyup = (event: KeyboardEvent) => {
             if (event.keyCode === 38 && this.isRotateKeyHeld) {
                 this.isRotateKeyHeld = false;
             }
+
+            this.isKeyHeld = false;
         }
 
         if (!this.pauseElement.classList.contains('pause')) {
